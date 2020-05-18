@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import bodyParser from 'body-parser';
 import {filterImageFromURL, deleteLocalFiles} from './util/util';
 
@@ -30,7 +30,7 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
   /**************************************************************************** */
 
   //! END @TODO1
-  app.get( "/filteredimage/", async ( req, res ) => {
+  app.get( "/filteredimage/", async (req: Request, res: Response) => {
     // 1. validate the image_url query
     let { image_url } = req.query;
 
@@ -43,31 +43,12 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
     const filteredpath = await filterImageFromURL(image_url);
 
     // 3. send the resulting file in the response
-    res.sendFile(filteredpath);
+    res.status(200).sendFile(filteredpath, () =>
+      // 4. deletes any files on the server on finish of the response
+      deleteLocalFiles([filteredpath])
+    );
     console.log( `== sent filtered image ${filteredpath}` );
-
-    // 4. deletes any files on the server on finish of the response
-    const tempPath = '/util/tmp/';
-    const fs = require('fs');
-    try {
-      const tempFiles = fs.readdirSync(__dirname+tempPath)
-      let filesToDelete: any[] = [];
-
-      tempFiles.forEach((file: string) => {
-        // add to array except file being filtered
-        if (__dirname+tempPath+file !== filteredpath) {
-          filesToDelete.push(__dirname+tempPath+file)
-        }
-      });
-      console.log( `== i'll delete: ${filesToDelete}` );
-
-      deleteLocalFiles(filesToDelete);
-    }
-    catch (Exception) {
-      console.log( `Error: ${Exception.message}` )
-    }
-
-  });
+  } );
   
   // Root Endpoint
   // Displays a simple message to the user
